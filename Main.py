@@ -17,8 +17,9 @@ import warnings
 
 class Main:
     def __init__(self, wall_list=None, tx=None, rx=None, street='s',
-                 draw=1, simu='heatmap', resolution=1, impulse_response= 1):
-        plt.figure(1)
+                 draw=1, simu='heatmap', resolution=1, impulse_response=0, show=False):
+
+        plt.figure()
         self.start = time.time()
         self.impulse_response = impulse_response
         self.resolution = resolution
@@ -74,6 +75,8 @@ class Main:
         self.rays = None
         self.compute_ray()
         self.show()
+        if show:
+            plt.show()
 
     def initialize_wall(self):
         data = np.reshape(np.loadtxt('grand_place.txt', delimiter=None, dtype=int), (-1, 5))
@@ -150,62 +153,48 @@ class Main:
                       'delay_spread = ' + str(round(delay_spread, 10)) + '\n', color='red')
             print(" \ntotal time taken is is {} min {} seconds\n".format(round((time.time() - self.start)/60), round((time.time() - self.start)%(60))))
 
-            plt.show()
+            plt.show(block=False)
         elif self.simu == 'plot_1D':
             idx = 0
             for feat in ['P_RX_dBm', 'SNR_dB', 'K_dB', 'delay_spread']:
-                plt.figure(2+idx)
+                plt.figure()
                 data = self.big_mat[:, idx]
                 plt.plot(self.d, data)
                 plt.title(feat + ' from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1), round(self.tx.pos_y, 1), round(self.rx[-1].pos_x, 1), round(self.rx[-1].pos_y, 1)))
                 plt.xlabel('distance [m]')
                 plt.ylabel(feat)
                 plt.savefig('output/' + feat + '_plot_1D.png')
-                '''plt.figure(3)
-                plt.plot(np.log10(self.d), P_RX_dBm)
-                plt.title('Power received from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1),
-                                                                                  round(self.tx.pos_y, 1),
-                                                                                  round(self.rx[-1].pos_x, 1),
-                                                                                  round(self.rx[-1].pos_y, 1)))
-                plt.xlabel('log(d)')
-                plt.ylabel('P_RX_dBm')
-                plt.savefig('output/plot_1D_logd.png')'''
-                idx+=1
-            plt.show()
+                idx += 1
+            plt.show(block=False)
         elif self.simu == 'path_loss':
-            plt.figure(2)
+            plt.figure()
             idx = np.where(self.big_mat[:, 0] == self.big_mat[:, 0])# remove nan value
             P_RX_dBm = self.big_mat[idx, 0][0, :]
             self.d = np.array(self.d)[idx]
-            m, p = np.polyfit(np.log10(self.d), P_RX_dBm, 1)
+            [m, p] = np.polyfit(np.log10(self.d), P_RX_dBm, 1)
             fitted_P_RX_dBm = m*np.log10(self.d)+p
             plt.plot(np.log10(self.d), fitted_P_RX_dBm)
             plt.plot(np.log10(self.d), P_RX_dBm)
-
             plt.title('power receive  from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1), round(self.tx.pos_y, 1),
                                                                        round(self.rx[-1].pos_x, 1),
                                                                        round(self.rx[-1].pos_y, 1)))
             plt.legend(['Fitted data', 'Original data'])
             plt.xlabel('log(d)')
             plt.ylabel('P_RX_dBm')
-            plt.savefig('output/' + 'path_loss.png')
-            plt.figure(3)
+            plt.savefig('output/' + 'regression.png')
+            plt.show(block=False)
+            plt.figure()
             P_TX, _ = calculation_transmitted_power()
             path_loss = P_TX - fitted_P_RX_dBm
             plt.plot(np.log10(self.d), path_loss)
-
             plt.title('path loss from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1),
                                                                               round(self.tx.pos_y, 1),
                                                                               round(self.rx[-1].pos_x, 1),
                                                                               round(self.rx[-1].pos_y, 1)))
-            plt.legend('Fitted data')
             plt.xlabel('log(d)')
             plt.ylabel('path_loss')
             plt.savefig('output/' + 'path_loss.png')
-            plt.show()
-
-
-
+            plt.show(block=False)
         else:
             start3 = time.time()
             with tqdm(total=4) as pbar:
@@ -221,16 +210,10 @@ class Main:
                     im = ax.imshow(data.T)
                     plt.colorbar(im, ax=ax)
                     plt.title('heatmap for ' + feat)
-                    try:
-                        path = 'output/' + 'res =' + str(self.resolution) + '/'
-                        if not os.path.exists(path):
-                            os.makedirs(path)
-                        plt.savefig(path+ feat)
-                    except:
-                        path = 'output/' + 'resx100 =' + str(round(self.resolution*100)) + '/'
-                        if not os.path.exists(path):
-                            os.makedirs(path)
-                        plt.savefig(path + feat)
+                    path = 'output/' + 'res =' + str(self.resolution) + '/'
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    plt.savefig(path + feat)
                     plt.show(block=False)
                     idx += 1
             print("\nplotting took is {} min {} seconds\n".format(round((time.time() - start3)/60), round((time.time() - start3)%(60*60))))
@@ -238,10 +221,13 @@ class Main:
                                                                      round((time.time() - self.start) % 60)))
             # plt.show()
 
+resolution = 0.1
+Main(simu='LOS', impulse_response=0)
+Main(simu='diff')
+Main(simu='plot_1D', resolution=resolution)
+Main(simu='path_loss', resolution=resolution)
+Main(simu='heatmap', resolution=resolution)
 
-#Main(simu='heatmap', resolution=0.5)
-# Main(simu='diff')
-Main(simu='heatmap', resolution=0.3)
 
 
 

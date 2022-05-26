@@ -99,13 +99,14 @@ def channel_impulse_response(rays, attenuation_factor,E, dB = True):
     else:
         h_bis_dB = np.abs(h_bis)
     tau_list_ns = tau_list_bis*10**9
-    plt.figure(2)
+    plt.figure()
     #h_bis_dB=abs(E)
     plt.stem(tau_list_ns, h_bis_dB)# TODO : abs(E)
     plt.xlabel('tau [ns]')
     plt.ylabel('h(tau) [dB]')
     plt.title('Physical impulse Response')
-
+    plt.savefig('output/Physical_impulse_Response.png')
+    plt.show(block=False)
     """TDL impulse response"""
 
     delay_spread = tau_list.max() - tau_list.min()
@@ -125,13 +126,14 @@ def channel_impulse_response(rays, attenuation_factor,E, dB = True):
     t_TDL = delta_tau_TDL * 10**9 * np.arange(L+1)
     base_value = h_l_dB.min() - 10
     max_value = h_l_dB.max() + 20
-    plt.figure(3)
+    plt.figure()
     plt.stem(t_TDL, h_l_dB)
     plt.xlabel('tau [ns]')
     plt.ylabel('h(tau, t) [dB]')
     plt.title('TDL impulse Response')
     plt.ylim([base_value, max_value])
-
+    plt.savefig('output/TDL_impulse_Response.png')
+    plt.show(block=False)
 
     """TDL US  impulse response"""
     """BW = 1/delay_spread
