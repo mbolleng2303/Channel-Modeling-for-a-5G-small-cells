@@ -122,7 +122,6 @@ def channel_impulse_response(rays, attenuation_factor,E, dB = True):
         h_l_dB = 10*np.log10(np.abs(h_l))
     else :
         h_l_dB = np.abs(h_l)
-
     t_TDL = delta_tau_TDL * 10**9 * np.arange(L+1)
     base_value = h_l_dB.min() - 10
     max_value = h_l_dB.max() + 20

@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt, pyplot, transforms
 from matplotlib.collections import PathCollection
 from matplotlib.transforms import Affine2D
-
+from sklearn.linear_model import LinearRegression
 from Wall import Wall
 from Antenna import Antenna
 from Ray_Tracing import RayTracing
@@ -41,9 +41,17 @@ class Main:
             elif simu == 'diff':
                 self.rx = Antenna(55, 5, 'rx')
                 #self.rx = Antenna(40, 55, 'rx')
-            elif self.simu == 'path_loss':
-                NotImplementedError
-
+            elif self.simu == 'plot_1D' or self.simu == 'path_loss':
+                temp = []
+                d = []
+                x_ = np.arange(5, 50, self.resolution)
+                for x in x_:
+                    y = 105 - (90/45)*x
+                    d.append(np.linalg.norm([x-self.tx.pos_x, y-self.tx.pos_y]))
+                    temp.append(Antenna(x, y, 'rx', plot=True))
+                self.rx = temp
+                self.d = d
+                self.draw = 0
             elif simu == 'heatmap':
                 temp = []
                 x_ = 15
@@ -101,7 +109,7 @@ class Main:
         return in_map
 
     def compute_ray(self):
-        if self.simu != 'heatmap':
+        if self.simu == 'LOS' or self.simu == 'diff':
             obj = RayTracing(self.wall_list, self.tx, self.rx, street=self.street, draw=self.draw)
             obj.ray_tracer()
             self.rays = obj.get_rays()
@@ -130,19 +138,74 @@ class Main:
             print("\ncomputing rays take is {} min {} seconds\n".format(round((time.time() - start)/60), round((time.time() - start)%(60))))
 
     def show(self):
-        if self.simu !='heatmap':
+        if self.simu == 'diff' or self.simu == 'LOS':
             plt.title('Ray Tracing for tx ({},{}) and rx ({},{})'.format(self.tx.pos_x,
                                                                          self.tx.pos_y,
                                                                          self.rx.pos_x,
                                                                          self.rx.pos_y))
-            [P_RX_dBm, SNR_dB, K_dB, delay_spread] = calculation_received_power(self.rays, impulse_response = self.impulse_response)
-            plt.text(51,80,'P_RX_dBm = ' + str(round(P_RX_dBm, 2)) + '\n' +
+            [P_RX_dBm, SNR_dB, K_dB, delay_spread] = calculation_received_power(self.rays, impulse_response=self.impulse_response)
+            plt.text(51, 80, 'P_RX_dBm = ' + str(round(P_RX_dBm, 2)) + '\n' +
                       'SNR_dB =' + str(round(SNR_dB, 2)) + '\n' +
                       'K_dB = ' + ['-' if K_dB is None else str(round(K_dB, 2))][0] + '\n' +
                       'delay_spread = ' + str(round(delay_spread, 10)) + '\n', color='red')
             print(" \ntotal time taken is is {} min {} seconds\n".format(round((time.time() - self.start)/60), round((time.time() - self.start)%(60))))
 
             plt.show()
+        elif self.simu == 'plot_1D':
+            idx = 0
+            for feat in ['P_RX_dBm', 'SNR_dB', 'K_dB', 'delay_spread']:
+                plt.figure(2+idx)
+                data = self.big_mat[:, idx]
+                plt.plot(self.d, data)
+                plt.title(feat + ' from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1), round(self.tx.pos_y, 1), round(self.rx[-1].pos_x, 1), round(self.rx[-1].pos_y, 1)))
+                plt.xlabel('distance [m]')
+                plt.ylabel(feat)
+                plt.savefig('output/' + feat + '_plot_1D.png')
+                '''plt.figure(3)
+                plt.plot(np.log10(self.d), P_RX_dBm)
+                plt.title('Power received from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1),
+                                                                                  round(self.tx.pos_y, 1),
+                                                                                  round(self.rx[-1].pos_x, 1),
+                                                                                  round(self.rx[-1].pos_y, 1)))
+                plt.xlabel('log(d)')
+                plt.ylabel('P_RX_dBm')
+                plt.savefig('output/plot_1D_logd.png')'''
+                idx+=1
+            plt.show()
+        elif self.simu == 'path_loss':
+            plt.figure(2)
+            idx = np.where(self.big_mat[:, 0] == self.big_mat[:, 0])# remove nan value
+            P_RX_dBm = self.big_mat[idx, 0][0, :]
+            self.d = np.array(self.d)[idx]
+            m, p = np.polyfit(np.log10(self.d), P_RX_dBm, 1)
+            fitted_P_RX_dBm = m*np.log10(self.d)+p
+            plt.plot(np.log10(self.d), fitted_P_RX_dBm)
+            plt.plot(np.log10(self.d), P_RX_dBm)
+
+            plt.title('power receive  from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1), round(self.tx.pos_y, 1),
+                                                                       round(self.rx[-1].pos_x, 1),
+                                                                       round(self.rx[-1].pos_y, 1)))
+            plt.legend(['Fitted data', 'Original data'])
+            plt.xlabel('log(d)')
+            plt.ylabel('P_RX_dBm')
+            plt.savefig('output/' + 'path_loss.png')
+            plt.figure(3)
+            P_TX, _ = calculation_transmitted_power()
+            path_loss = P_TX - fitted_P_RX_dBm
+            plt.plot(np.log10(self.d), path_loss)
+
+            plt.title('path loss from tx = ({},{}) until ({},{})'.format(round(self.tx.pos_x, 1),
+                                                                              round(self.tx.pos_y, 1),
+                                                                              round(self.rx[-1].pos_x, 1),
+                                                                              round(self.rx[-1].pos_y, 1)))
+            plt.legend('Fitted data')
+            plt.xlabel('log(d)')
+            plt.ylabel('path_loss')
+            plt.savefig('output/' + 'path_loss.png')
+            plt.show()
+
+
+
         else:
             start3 = time.time()
             with tqdm(total=4) as pbar:
@@ -176,10 +239,12 @@ class Main:
             # plt.show()
 
 
+#Main(simu='heatmap', resolution=0.5)
+# Main(simu='diff')
+Main(simu='heatmap', resolution=0.3)
 
 
 
-#Main(simu='diff')
-Main(simu='LOS')
-#Main(simu='heatmap', resolution=1)
+
+
 
