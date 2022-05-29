@@ -27,7 +27,7 @@ class RayTracing:
         tx = self.tx
         rx = self.rx
         draw = self.draw
-        street= self.street
+        street = self.street
         'LOS'
         ray_LOS, LOS = line_of_sight(self.wall_list, tx, rx, draw)
         if LOS:
@@ -45,19 +45,19 @@ class RayTracing:
                 antenna_image1 = antenna_image(wall, tx.P)
                 impact1, pt_impact1 = Impact(wall, antenna_image1, rx.P)
                 if impact1:
-                    intersection_1a = check_intersection_wall_list(wall_list, tx.P, pt_impact1)
-                    intersection_1b = check_intersection_wall_list(wall_list, pt_impact1, rx.P)
+                    intersection_1a = check_intersection(wall_list, tx.P, pt_impact1)
+                    intersection_1b = check_intersection(wall_list, pt_impact1, rx.P)
                     intersection_1 = intersection_1a + intersection_1b
                     if not intersection_1:
                         ray = Ray(antenna_image1, rx.P)
-                        theta_i = calculation_theta_i(wall, antenna_image1, rx.P)
-                        gamma_perp = calculation_gamma_perp(theta_i)
+                        theta_i = compute_theta_i(wall, antenna_image1, rx.P)
+                        gamma_perp = compute_gamma_perp(theta_i)
                         ray.gamma = ray.gamma * gamma_perp
                         ray.theta_i = ray.theta_i + theta_i
                         ray.nbr_R = 1
                         if draw:
                             plt.plot([tx.pos_x, pt_impact1[0], rx.pos_x], [tx.pos_y, pt_impact1[1], rx.pos_y], color='blue')
-                            self.rays.append(ray)
+                        self.rays.append(ray)
                 'Second reflexion'
                 for i in range(np.array(wall_list).shape[0]):
                     wall2 = wall_list[i]
@@ -66,27 +66,27 @@ class RayTracing:
                     if impact2:
                         impact3, pt_impact3 = Impact(wall, antenna_image1, pt_impact2)
                         if impact3:
-                            intersection_2a = check_intersection_wall_list(wall_list, tx.P, pt_impact3)
-                            intersection_2b = check_intersection_wall_list(wall_list, pt_impact3, pt_impact2)
-                            intersection_2c = check_intersection_wall_list(wall_list, pt_impact2, rx.P)
+                            intersection_2a = check_intersection(wall_list, tx.P, pt_impact3)
+                            intersection_2b = check_intersection(wall_list, pt_impact3, pt_impact2)
+                            intersection_2c = check_intersection(wall_list, pt_impact2, rx.P)
                             intersection_2 = intersection_2a + intersection_2b + intersection_2c
                             if not intersection_2:
                                 ray = Ray(antenna_image2, rx.P)
                                 ray.nbr_R = 2
                                 'first reflexion'
-                                theta_i = calculation_theta_i(wall, antenna_image1, pt_impact2)
-                                gamma_perp = calculation_gamma_perp(theta_i)
+                                theta_i = compute_theta_i(wall, antenna_image1, pt_impact2)
+                                gamma_perp = compute_gamma_perp(theta_i)
                                 ray.gamma = ray.gamma * gamma_perp
                                 ray.theta_i = ray.theta_i + theta_i
                                 'second reflexion'
-                                theta_i = calculation_theta_i(wall2, antenna_image2, rx.P)
-                                gamma_perp = calculation_gamma_perp(theta_i)
+                                theta_i = compute_theta_i(wall2, antenna_image2, rx.P)
+                                gamma_perp = compute_gamma_perp(theta_i)
                                 ray.gamma = ray.gamma * gamma_perp
                                 ray.theta_i = ray.theta_i + theta_i
                                 if draw:
                                     plt.plot([tx.pos_x, pt_impact3[0], pt_impact2[0], rx.pos_x], [tx.pos_y, pt_impact3[1], pt_impact2[1], rx.pos_y], color='green')
                                 self.rays.append(ray)
-        if not LOS:
+        '''if not LOS:
             'Diffraction'
             street_walls = []
             for k in range(np.array(wall_list).shape[0]):
@@ -100,12 +100,12 @@ class RayTracing:
             I = np.where(r == np.amin(r))[0][0]
             ray = Ray(tx.P, rx.P)
             street_corner = street_walls[I].P2
-            coefD, r_ke = calculation_coef_diffraction(tx.P, street_corner, rx.P)
+            coefD, r_ke = compute_coef_diffraction(tx.P, street_corner, rx.P)
             ray.d = r_ke
             ray.D = ray.D * coefD
             if draw:
                 plt.plot([tx.pos_x, street_walls[I].x2, rx.pos_x], [tx.pos_y, street_walls[I].y2, rx.pos_y], color = 'yellow')
-            self.rays.append(ray)
+            self.rays.append(ray)'''
 
     def get_rays(self):
         return self.rays
